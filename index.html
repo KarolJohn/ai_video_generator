@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Video Generator</title>
+    <style>
+        body { font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; background-color: #f0f2f5; margin: 0; }
+        .container { text-align: center; background: white; padding: 40px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        h1 { color: #333; }
+        input { padding: 12px; font-size: 16px; width: 300px; margin-right: 10px; border: 1px solid #ccc; border-radius: 5px; }
+        button { padding: 12px 22px; font-size: 16px; border: none; background-color: #007bff; color: white; border-radius: 5px; cursor: pointer; transition: background-color 0.3s; }
+        button:hover { background-color: #0056b3; }
+        #status { margin-top: 20px; font-weight: bold; color: #555; min-height: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>AI Video Generator</h1>
+        <p>Enter a topic and let AI create a video for you.</p>
+        <div>
+            <input type="text" id="topicInput" placeholder="e.g., The Solar System">
+            <button onclick="startVideoCreation()">Create Video</button>
+        </div>
+        <p id="status"></p>
+    </div>
+
+    <script>
+        async function startVideoCreation() {
+            const topicInput = document.getElementById('topicInput');
+            const status = document.getElementById('status');
+            const topic = topicInput.value;
+
+            if (!topic) {
+                status.textContent = "Please enter a topic!";
+                return;
+            }
+
+            status.textContent = `Creating video about "${topic}"... this can take a minute.`;
+            status.style.color = '#555'; // Reset color
+
+            try {
+                const response = await fetch('/create_video', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ topic: topic }),
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    status.textContent = result.message;
+                } else {
+                    status.textContent = `Error: ${result.detail}`;
+                    status.style.color = 'red';
+                }
+
+            } catch (error) {
+                status.textContent = "An error occurred. Is the backend server running?";
+                status.style.color = 'red';
+                console.error('Error:', error);
+            }
+        }
+    </script>
+</body>
+</html>
