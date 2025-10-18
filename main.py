@@ -58,7 +58,8 @@ async def create_video(request: VideoRequest):
 
         # 3. --- FINDING VIDEO CLIPS ---
         headers = {"Authorization": PEXELS_API_KEY}
-        query_url = f"https://api.pexels.com/videos/search?query={topic}&per_page=3&orientation=portrait"
+        # --- CHANGE 1: Ask for 2 videos instead of 3 ---
+        query_url = f"https://api.pexels.com/videos/search?query={topic}&per_page=2&orientation=portrait"
         response = requests.get(query_url, headers=headers)
         if response.status_code != 200:
             raise HTTPException(status_code=500, detail="Failed to fetch videos from Pexels.")
@@ -67,11 +68,9 @@ async def create_video(request: VideoRequest):
             raise HTTPException(status_code=404, detail=f"No videos found for topic: {topic}")
         
         for i, video in enumerate(videos):
-            # --- CHANGE 1: Find 'sd' quality video first ---
             video_link = next((f['link'] for f in video['video_files'] if f['quality'] == 'sd'), None)
             if not video_link:
-                continue # Skip if no SD version
-            
+                continue
             video_data = requests.get(video_link).content
             video_path = f"video_{i}.mp4"
             with open(video_path, 'wb') as handler:
@@ -104,9 +103,8 @@ async def create_video(request: VideoRequest):
             clip = VideoFileClip(path)
             opened_video_clips.append(clip)
             trimmed_clip = clip.subclip(0, clip_duration)
-            
-            # --- CHANGE 2: Resize to 720p to save memory ---
-            resized_clip = trimmed_clip.resize(height=720) 
+            # --- CHANGE 2: Resize to 480p to save even more memory ---
+            resized_clip = trimmed_clip.resize(height=480) 
             final_clips.append(resized_clip)
         
         final_video = concatenate_videoclips(final_clips)
