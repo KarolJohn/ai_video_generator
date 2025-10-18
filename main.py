@@ -40,11 +40,9 @@ async def create_video(request: VideoRequest):
     audio_filename = "voiceover.mp3"
     video_paths = []
     
-    # This main try block wraps the entire process to ensure cleanup
     try:
         # 1. --- AI SCRIPT GENERATION ---
         prompt = f"You are a scriptwriter for short videos. Write a voiceover script about '{topic}'. The script must be less than 40 words. Do not include any labels like 'VOICEOVER:', sound effects, or asterisks. Only output the raw text to be spoken."
-        # Using the model name you specified
         model = genai.GenerativeModel('models/gemini-flash-latest')
         response = model.generate_content(prompt)
         raw_script = response.text.strip()
@@ -69,9 +67,11 @@ async def create_video(request: VideoRequest):
             raise HTTPException(status_code=404, detail=f"No videos found for topic: {topic}")
         
         for i, video in enumerate(videos):
-            video_link = next((f['link'] for f in video['video_files'] if f['quality'] == 'hd'), None)
+            # --- CHANGE 1: Find 'sd' quality video first ---
+            video_link = next((f['link'] for f in video['video_files'] if f['quality'] == 'sd'), None)
             if not video_link:
-                continue
+                continue # Skip if no SD version
+            
             video_data = requests.get(video_link).content
             video_path = f"video_{i}.mp4"
             with open(video_path, 'wb') as handler:
@@ -104,7 +104,9 @@ async def create_video(request: VideoRequest):
             clip = VideoFileClip(path)
             opened_video_clips.append(clip)
             trimmed_clip = clip.subclip(0, clip_duration)
-            resized_clip = trimmed_clip.resize(height=1080)
+            
+            # --- CHANGE 2: Resize to 720p to save memory ---
+            resized_clip = trimmed_clip.resize(height=720) 
             final_clips.append(resized_clip)
         
         final_video = concatenate_videoclips(final_clips)
@@ -114,7 +116,6 @@ async def create_video(request: VideoRequest):
         final_video.write_videofile(output_filename, fps=24, codec='libx264', audio_codec='aac')
         print(f"Video saved as {output_filename}!")
 
-        # Explicitly close all clips to prevent file locking errors
         voiceover_clip.close()
         music_clip.close()
         for clip in opened_video_clips:
@@ -122,7 +123,6 @@ async def create_video(request: VideoRequest):
     
     finally:
         # 5. --- CLEANUP ---
-        # This code runs whether the 'try' block succeeds or fails
         if os.path.exists(audio_filename):
             os.remove(audio_filename)
         for path in video_paths:
