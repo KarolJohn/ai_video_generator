@@ -12,6 +12,10 @@
         button { padding: 12px 22px; font-size: 16px; border: none; background-color: #007bff; color: white; border-radius: 5px; cursor: pointer; transition: background-color 0.3s; }
         button:hover { background-color: #0056b3; }
         #status { margin-top: 20px; font-weight: bold; color: #555; min-height: 20px; }
+        /* Style for the download link area */
+        #downloadLink { margin-top: 15px; min-height: 20px; } 
+        #downloadLink a { color: #007bff; text-decoration: none; font-weight: bold; }
+        #downloadLink a:hover { text-decoration: underline; }
     </style>
 </head>
 <body>
@@ -23,12 +27,13 @@
             <button onclick="startVideoCreation()">Create Video</button>
         </div>
         <p id="status"></p>
-    </div>
-
+        <div id="downloadLink"></div> </div> 
+    
     <script>
         async function startVideoCreation() {
             const topicInput = document.getElementById('topicInput');
             const status = document.getElementById('status');
+            const downloadLink = document.getElementById('downloadLink'); 
             const topic = topicInput.value;
 
             if (!topic) {
@@ -37,7 +42,8 @@
             }
 
             status.textContent = `Creating video about "${topic}"... this can take a minute.`;
-            status.style.color = '#555'; // Reset color
+            status.style.color = '#555';
+            downloadLink.innerHTML = ''; // Clear previous link
 
             try {
                 const response = await fetch('/create_video', {
@@ -49,7 +55,9 @@
                 const result = await response.json();
 
                 if (response.ok) {
-                    status.textContent = result.message;
+                    status.textContent = result.message; 
+                    // Create the download link using the filename from the server
+                    downloadLink.innerHTML = `<a href="/download/${result.filename}" download="${result.filename}">Download ${result.filename}</a>`;
                 } else {
                     status.textContent = `Error: ${result.detail}`;
                     status.style.color = 'red';
